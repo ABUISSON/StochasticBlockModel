@@ -10,10 +10,26 @@ library(sand)
 
 setwd(dir="/Users/yoanrussac/desktop")
 dir()
+### importation des données et traitement des bases de données
 donnee_MMB=read.csv2(file='biped.csv',sep=",",dec=".")
 donnee_MMB=as.data.frame(donnee_MMB)
+donnee_twitter=read.csv2(file='donnes_twitter.csv',sep=";",dec=".")
+donnee_twitter$node<-as.factor(donnee_twitter$node)
+adja_donnee_twitter=read.csv2(file='adja_donnees_twitter.csv',sep=";",dec=".")
+adja_donnee_twitter[,1]<-as.factor(adja_donnee_twitter[,1])
+rownames(adja_donnee_twitter)=adja_donnee_twitter[,1]
+adja_donnee_twitter=adja_donnee_twitter[,-1]
+colnames(adja_donnee_twitter)=rownames(adja_donnee_twitter)
 
 
+
+indice_ordonne=c()
+for (i in 1:length(rownames(adja_donnee_twitter))){
+  print(which(donnee_twitter$node==rownames(adja_donnee_twitter)[i]))
+  indice_ordonne=c(indice_ordonne,which(donnee_twitter$node==rownames(adja_donnee_twitter)[i]))
+}
+
+donne_twitter_align_adja=donnee_twitter[indice_ordonne,]
 color_list= c("#F781BF","#E41A1C","#999999","#377EB8", "#A65628", "#984EA3", "#FF7F00" ,"#FFFF33","#4DAF4A")
 
 ##### visualisation des données initiales #####
@@ -61,6 +77,9 @@ trace_graphe_initiaux("total")
 SBM_blog <- mixer(as.matrix(get.adjacency(fblog2)),qmin=12, qmax=12)
 model_SBM_blog <- mixer::getModel(SBM_blog) ## permet de récupérer le meilleur modèle \\\ 12 classes ici
 plot(SBM_blog, classes=as.factor(V(fblog2)$PolParty),classes.col=color_list,frame=4)
+plot(SBM_blog, classes=as.factor(V(fblog2)$PolParty),frame=4)
+
+V(fblog2)$PolParty
 
 prob_predite=SBM_blog$output[[1]]$Taus
 prob_predite=as.data.frame(prob_predite)
@@ -80,17 +99,29 @@ data(blog)
 
 
 ###### les fonctions qui permettent d'avoir les classes des différentes personnalités
-classe_appartenance_SBM=function(nb_classe){
-  modele=mixer(as.matrix(get.adjacency(fblog2)),qmin=nb_classe,qmax=nb_classe)
-  res_classe=matrix(0,length(colnames(as.data.frame(modele$output[[1]]$Taus))),1)
+classe_appartenance_SBM = function(nb_classe,contenu_classe=FALSE){
+  modele = mixer(as.matrix(get.adjacency(fblog2)),qmin=nb_classe,qmax=nb_classe)
+  noms_blogs=modele$nnames[[1]]
+  list_res=list()
+  res_classe = matrix(0,length(colnames(as.data.frame(modele$output[[1]]$Taus))),1)
   for (j in 1:length(colnames(as.data.frame(modele$output[[1]]$Taus)))){
-    res_classe[j]<- which.max(modele$output[[1]]$Taus[,j])
+    res_classe[j] <- which.max(modele$output[[1]]$Taus[,j])
   }
-  return(res_classe)
+  if (contenu_classe == FALSE)
+    {
+    return(res_classe)
+  }
+  else{
+    for (i in 1:nb_classe){
+      list_res[[i]]=noms_blogs[which(res_classe==i)]
+      }
+    list_res[[nb_classe+1]]=res_classe
+    print(table(res_classe))
+    return(list_res)
+    }
 }
 
 
-classe_appartenance_SBM(5)
 
 classe_appartenance_MBB <- function(graph=as.matrix(get.adjacency(fblog2)), n=8){
   result <- mmsb.collapsed.gibbs.sampler(graph,
@@ -211,12 +242,41 @@ trace_clustering(5)
 
 
 
-
-
-
+modele=mixer(as.matrix(adja_donnee_twitter),qmin=2,qmax=15)
+plot(modele,classes=as.factor(donne_twitter_align_adja$party))
 
 
 ### faire un algo qui pour chaque classe donne la liste des noms de blogs dedans.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -235,9 +295,4 @@ sample(nrow(dm))
 dm[a,a]
 
 
-#######
-data(blog)
-unique(blog$politicalParty)
-
-fblog2
 
