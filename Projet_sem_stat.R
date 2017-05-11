@@ -8,10 +8,10 @@ library(flexclust)
 library(lda)
 library(sand)
 
-setwd(dir="/Users/yoanrussac/desktop")
+setwd(dir="/Users/yoanrussac/desktop/ENSAE-Cours/2A/2nd Semestre/Séminaire de stat/StochasticBlockModel/Data")
 dir()
 ### importation des données et traitement des bases de données
-donnee_MMB=read.csv2(file='biped.csv',sep=",",dec=".")
+donnee_MMB=read.csv2(file='MMB_data.csv',sep=",",dec=".")
 donnee_MMB=as.data.frame(donnee_MMB)
 donnee_twitter=read.csv2(file='donnes_twitter.csv',sep=";",dec=".")
 donnee_twitter$node<-as.factor(donnee_twitter$node)
@@ -29,7 +29,7 @@ for (i in 1:length(rownames(adja_donnee_twitter))){
   indice_ordonne=c(indice_ordonne,which(donnee_twitter$node==rownames(adja_donnee_twitter)[i]))
 }
 
-donne_twitter_align_adja=donnee_twitter[indice_ordonne,]
+donnee_twitter_reorder=donnee_twitter[indice_ordonne,]
 color_list= c("#F781BF","#E41A1C","#999999","#377EB8", "#A65628", "#984EA3", "#FF7F00" ,"#FFFF33","#4DAF4A")
 
 ##### visualisation des données initiales #####
@@ -76,24 +76,15 @@ trace_graphe_initiaux("total")
 #### Modèle SBM  
 SBM_blog <- mixer(as.matrix(get.adjacency(fblog2)),qmin=12, qmax=12)
 model_SBM_blog <- mixer::getModel(SBM_blog) ## permet de récupérer le meilleur modèle \\\ 12 classes ici
+noms_variables=SBM_blog$nnames[[1]]
 plot(SBM_blog, classes=as.factor(V(fblog2)$PolParty),classes.col=color_list,frame=4)
 plot(SBM_blog, classes=as.factor(V(fblog2)$PolParty),frame=4)
 
-V(fblog2)$PolParty
 
 prob_predite=SBM_blog$output[[1]]$Taus
 prob_predite=as.data.frame(prob_predite)
 colnames(prob_predite)<-(1:length(colnames(prob_predite)))
 
-noms_variables=SBM_blog$nnames[[1]]
-
-indice_genant=which(donnee_MMB$X  %in%  SBM_blog$nnames[[1]]==FALSE)
-donnee_MMB=donnee_MMB[-indice_genant,]
-
-
-
-### si on veut network plutot que igraph ### je pourrai faire une fonction à la limite
-data(blog)
 
 
 
@@ -164,7 +155,7 @@ comparaison_ARI=function(class_ini,class_fin,renvoi){
 comparaison_ARI(5,7)
 
 
-plot_polygone_regulier=function(n){
+coord_polygone_regulier=function(n){
   list_x=c()
   list_y=c()
   res=list()
@@ -177,10 +168,10 @@ plot_polygone_regulier=function(n){
   return(res)
   }
 
-plot_polygone_regulier(5)
+coord_polygone_regulier(5)
 
 vecteur_coordonne=function(n){
-  res=plot_polygone_regulier(n)
+  res=coord_polygone_regulier(n)
   matrix_res=matrix(0,n,2)
   for (i in 1:n){
     
@@ -196,7 +187,7 @@ plot_sur_polygone_SBM=function(n){
   matrice_proba=as.matrix(modele$output[[1]]$Taus)
   print(matrice_proba)
   coord=vecteur_coordonne(n)
-  res_plot=plot_polygone_regulier(n)
+  res_plot=coord_polygone_regulier(n)
   res_plot[[1]]=c(res_plot[[1]],res_plot[[1]][1])
   res_plot[[2]]=c(res_plot[[2]],res_plot[[2]][1])
   plot(res_plot[[1]],res_plot[[2]],"l",xlab="",ylab="")
@@ -213,7 +204,7 @@ plot_sur_polygone_MMB=function(n){
   result <- mmsb.collapsed.gibbs.sampler (as.matrix(get.adjacency(fblog2)), K=n, num.iterations=100, alpha=0.001, burnin=20L, beta.prior = list( diag(8,n)+1, diag(5,n)+1 ))
   matrice_proba= as.matrix(with(result, t(document_sums) / colSums(document_sums)))
   coord=vecteur_coordonne(n)
-  res_plot=plot_polygone_regulier(n)
+  res_plot=coord_polygone_regulier(n)
   res_plot[[1]]=c(res_plot[[1]],res_plot[[1]][1])
   res_plot[[2]]=c(res_plot[[2]],res_plot[[2]][1])
   plot(res_plot[[1]],res_plot[[2]],"l",xlab="",ylab="")
@@ -231,7 +222,7 @@ trace_clustering=function(n){
   image(cl1)
   points(trace, col=color_list[party.nums], pch=19, cex=0.9)
   coord=vecteur_coordonne(n)
-  res_plot=plot_polygone_regulier(n)
+  res_plot=coord_polygone_regulier(n)
   res_plot[[1]]=c(res_plot[[1]],res_plot[[1]][1])
   res_plot[[2]]=c(res_plot[[2]],res_plot[[2]][1])
   lines(res_plot[[1]],res_plot[[2]],"l",xlab="",ylab="")
@@ -243,12 +234,28 @@ trace_clustering(5)
 
 
 modele=mixer(as.matrix(adja_donnee_twitter),qmin=2,qmax=15)
-plot(modele,classes=as.factor(donne_twitter_align_adja$party))
+plot(modele,classes=as.factor(donnee_twitter_reorder$party))
 
 
-### faire un algo qui pour chaque classe donne la liste des noms de blogs dedans.
+##### par rapport aux données sur Twitter
+twitter_color=c("olivedrab","lightblue3","magenta","red2","grey27","navy","royalblue","snow")
+  
+table(affiliation.nums.f)  
+graph_twitter=graph.adjacency(as.matrix(adja_donnee_twitter), mode = "directed")
+graph_twitter=set_vertex_attr(graph_twitter,name="affi_pol",value=as.character(donnee_twitter_reorder$party))
+affiliation.names<-sort(unique(V(graph_twitter)$affi_pol)) #### traitement pour future coloration
+affiliation.nums.f<-as.factor(V(graph_twitter)$affi_pol) ### différents partis
+affiliation.nums<-as.numeric(affiliation.nums.f) ### numero pour coloration
+affiliation.size<-as.vector(table(V(graph_twitter)$affi_pol)) ## taille du noeud en fonction du nombre de noeuds à l'intérieur 
+graph_twitter_regroupe <- contract.vertices(graph_twitter,affiliation.nums) ### regroupement selon le numero du parti
+E(graph_twitter_regroupe)$weight <- 1 #### mettre les poids des edges à 1
+graph_twitter_simplifie <- simplify(graph_twitter_regroupe) ### on enlève les structures complexes
 
 
+l=layout.kamada.kawai(graph_twitter) ### pour faire une visualisation claire 
+plot(graph_twitter,layout=l,vertex.label=NA,vertex.color=twitter_color[affiliation.nums],vertex.size=3,edge.arrow.size=.5)
+plot(graph_twitter_regroupe, vertex.size=5*sqrt(affiliation.size),vertex.label=affiliation.names,vertex.color=twitter_color,edge.width=sqrt(E(graph_twitter_regroupe)$weight),vertex.label.dist=1, edge.arrow.size=0)
+plot(graph_twitter_simplifie, vertex.size=5*sqrt(affiliation.size),vertex.label=affiliation.names,vertex.color=twitter_color,edge.width=sqrt(E(graph_twitter_simplifie)$weight),vertex.label.dist=0, edge.arrow.size=0)
 
 
 
