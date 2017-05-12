@@ -15,12 +15,23 @@ donnee_MMB=read.csv2(file='MMB_data.csv',sep=",",dec=".")
 donnee_MMB=as.data.frame(donnee_MMB)
 donnee_twitter=read.csv2(file='donnes_twitter.csv',sep=";",dec=".")
 donnee_twitter$node<-as.factor(donnee_twitter$node)
+
+donnee_twitter_1000=read.csv2(file='donnees_twitter_1000.csv',sep=";",dec=".")
+donnee_twitter_1000$node<-as.factor(donnee_twitter_1000$node)
+
+
+
+
 adja_donnee_twitter=read.csv2(file='adja_donnees_twitter.csv',sep=";",dec=".")
 adja_donnee_twitter[,1]<-as.factor(adja_donnee_twitter[,1])
 rownames(adja_donnee_twitter)=adja_donnee_twitter[,1]
 adja_donnee_twitter=adja_donnee_twitter[,-1]
 colnames(adja_donnee_twitter)=rownames(adja_donnee_twitter)
 
+adja_donnee_twitter_1000=read.csv(file='adja_1000.csv',sep=";",dec=".")
+rownames(adja_donnee_twitter_1000)=adja_donnee_twitter_1000[,1]
+adja_donnee_twitter_1000=adja_donnee_twitter_1000[,-1]
+colnames(adja_donnee_twitter_1000)=rownames(adja_donnee_twitter_1000)
 
 
 indice_ordonne=c()
@@ -29,7 +40,15 @@ for (i in 1:length(rownames(adja_donnee_twitter))){
   indice_ordonne=c(indice_ordonne,which(donnee_twitter$node==rownames(adja_donnee_twitter)[i]))
 }
 
+indice_ordonne_1000=c()
+for (i in 1:length(rownames(adja_donnee_twitter_1000))){
+  indice_ordonne_1000=c(indice_ordonne_1000,which(donnee_twitter_1000$user==rownames(adja_donnee_twitter_1000)[i]))
+}
+
+
+
 donnee_twitter_reorder=donnee_twitter[indice_ordonne,]
+donnee_twitter_reorder_1000=donnee_twitter_1000[indice_ordonne_1000,]
 color_list= c("#F781BF","#E41A1C","#999999","#377EB8", "#A65628", "#984EA3", "#FF7F00" ,"#FFFF33","#4DAF4A")
 
 ##### visualisation des données initiales #####
@@ -197,7 +216,7 @@ plot_sur_polygone_SBM=function(n){
 
 }
 
-plot_sur_polygone_SBM(4)
+plot_sur_polygone_SBM(5)
 
 
 plot_sur_polygone_MMB=function(n){
@@ -239,24 +258,39 @@ plot(modele,classes=as.factor(donnee_twitter_reorder$party))
 
 ##### par rapport aux données sur Twitter
 twitter_color=c("olivedrab","lightblue3","magenta","red2","grey27","navy","royalblue","snow")
+twitter_color_1000=c("olivedrab","green","lightblue3","magenta","red2","grey27","navy","royalblue","black","snow")
   
 table(affiliation.nums.f)  
 graph_twitter=graph.adjacency(as.matrix(adja_donnee_twitter), mode = "directed")
+graph_twitter_1000=graph.adjacency(as.matrix(adja_donnee_twitter_1000), mode = "directed")
 graph_twitter=set_vertex_attr(graph_twitter,name="affi_pol",value=as.character(donnee_twitter_reorder$party))
+graph_twitter_1000=set_vertex_attr(graph_twitter_1000,name="affi_pol",value=as.character(donnee_twitter_reorder_1000$party))
 affiliation.names<-sort(unique(V(graph_twitter)$affi_pol)) #### traitement pour future coloration
+affiliation_1000.names<-sort(unique(V(graph_twitter_1000)$affi_pol)) #### traitement pour future coloration
+affiliation.names
+affiliation_1000.names
 affiliation.nums.f<-as.factor(V(graph_twitter)$affi_pol) ### différents partis
+affiliation_1000.nums.f<-as.factor(V(graph_twitter_1000)$affi_pol) ### différents partis
 affiliation.nums<-as.numeric(affiliation.nums.f) ### numero pour coloration
+affiliation_1000.nums<-as.numeric(affiliation_1000.nums.f) ### numero pour coloration
 affiliation.size<-as.vector(table(V(graph_twitter)$affi_pol)) ## taille du noeud en fonction du nombre de noeuds à l'intérieur 
+affiliation_1000.size<-as.vector(table(V(graph_twitter_1000)$affi_pol)) ## taille du noeud en fonction du nombre de noeuds à l'intérieur 
+affiliation_1000.size
 graph_twitter_regroupe <- contract.vertices(graph_twitter,affiliation.nums) ### regroupement selon le numero du parti
+graph_twitter_regroupe_1000 <- contract.vertices(graph_twitter_1000,affiliation_1000.nums)
 E(graph_twitter_regroupe)$weight <- 1 #### mettre les poids des edges à 1
+E(graph_twitter_regroupe_1000)$weight <- 1 #### mettre les poids des edges à 1
 graph_twitter_simplifie <- simplify(graph_twitter_regroupe) ### on enlève les structures complexes
-
+graph_twitter_1000_simplifie <- simplify(graph_twitter_regroupe_1000)
 
 l=layout.kamada.kawai(graph_twitter) ### pour faire une visualisation claire 
+l_1000=layout.kamada.kawai(graph_twitter_1000) ### pour faire une visualisation claire 
 plot(graph_twitter,layout=l,vertex.label=NA,vertex.color=twitter_color[affiliation.nums],vertex.size=3,edge.arrow.size=.5)
+plot(graph_twitter_1000,layout=l_1000,vertex.label=NA,vertex.color=twitter_color_1000[affiliation_1000.nums],vertex.size=3,edge.arrow.size=.1)
 plot(graph_twitter_regroupe, vertex.size=5*sqrt(affiliation.size),vertex.label=affiliation.names,vertex.color=twitter_color,edge.width=sqrt(E(graph_twitter_regroupe)$weight),vertex.label.dist=1, edge.arrow.size=0)
+plot(graph_twitter_regroupe_1000, vertex.size=5*sqrt(affiliation_1000.size),vertex.label=affiliation_1000.names,vertex.color=twitter_color_1000,edge.width=sqrt(E(graph_twitter_regroupe_1000)$weight),vertex.label.dist=1, edge.arrow.size=0)
 plot(graph_twitter_simplifie, vertex.size=5*sqrt(affiliation.size),vertex.label=affiliation.names,vertex.color=twitter_color,edge.width=sqrt(E(graph_twitter_simplifie)$weight),vertex.label.dist=0, edge.arrow.size=0)
-
+plot(graph_twitter_1000_simplifie, vertex.size=5*sqrt(affiliation_1000.size),vertex.label=affiliation_1000.names,vertex.color=twitter_color_1000,edge.width=sqrt(E(graph_twitter_1000_simplifie)$weight),vertex.label.dist=0, edge.arrow.size=0)
 
 
 
